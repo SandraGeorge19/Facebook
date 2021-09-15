@@ -1,3 +1,6 @@
+import 'package:facebookfeed/bloC/bloc.dart';
+import 'package:facebookfeed/bloC/events.dart';
+import 'package:facebookfeed/bloC/states.dart';
 import 'package:facebookfeed/color_palettes.dart';
 import 'package:facebookfeed/constatns.dart';
 import 'package:facebookfeed/models/models.dart';
@@ -13,6 +16,7 @@ import 'package:facebookfeed/widgets/stories_container.dart';
 import 'package:facebookfeed/widgets/user_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:facebookfeed/widgets/circle_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -31,15 +35,9 @@ class FacebookFeed extends StatefulWidget {
 
 class _FacebookFeedState extends State<FacebookFeed>
     with SingleTickerProviderStateMixin {
+  late PostBloc bloc;
   final TrackingScrollController _trackingScrollController =
       TrackingScrollController();
-
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    _trackingScrollController.dispose();
-    super.dispose();
-  }
 
   var _scrollViewController;
   var _tabController;
@@ -51,9 +49,20 @@ class _FacebookFeedState extends State<FacebookFeed>
 
   @override
   void initState() {
-    super.initState();
     _scrollViewController = ScrollController();
     _tabController = TabController(vsync: this, length: 5);
+
+    bloc = BlocProvider.of<PostBloc>(context);
+    bloc.add(DoFetchEvent());
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _trackingScrollController.dispose();
+    bloc.close();
+    super.dispose();
   }
 
   final List<IconData> _icons = const [
@@ -138,17 +147,30 @@ class _FacebookFeedState extends State<FacebookFeed>
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-              child: ListView.builder(
-                  scrollDirection: Axis.vertical,
-                  shrinkWrap: true,
-                  physics: ScrollPhysics(),
-                  itemCount: posts.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final Post post = posts[index];
-                    return PostContainer(
-                      post: post,
-                    );
-                  }),
+              child: BlocBuilder<PostBloc, PostStates>(
+                builder: (context, state) {
+                  if (state is InitialState) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (state is LoadingState) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (state is FetchSuccess) {
+                    return ListView.builder(
+                        scrollDirection: Axis.vertical,
+                        shrinkWrap: true,
+                        physics: ScrollPhysics(),
+                        itemCount: state.posts.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          // final Post post = state.posts[index];
+                          return PostContainer(
+                            post: state.posts[index],
+                          );
+                        });
+                  } else if (state is ErrorState) {
+                    return ErrorWidget(state.message.toString());
+                  }
+                  return Text("Something went wrong, please try again.");
+                },
+              ),
             ),
           ),
         ],
@@ -477,17 +499,30 @@ class _FeedScreenWeb extends StatelessWidget {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-                    child: ListView.builder(
-                        scrollDirection: Axis.vertical,
-                        shrinkWrap: true,
-                        physics: ScrollPhysics(),
-                        itemCount: posts.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final Post post = posts[index];
-                          return PostContainer(
-                            post: post,
-                          );
-                        }),
+                    child: BlocBuilder<PostBloc, PostStates>(
+                      builder: (context, state) {
+                        if (state is InitialState) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (state is LoadingState) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (state is FetchSuccess) {
+                          return ListView.builder(
+                              scrollDirection: Axis.vertical,
+                              shrinkWrap: true,
+                              physics: ScrollPhysics(),
+                              itemCount: state.posts.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                // final Post post = state.posts[index];
+                                return PostContainer(
+                                  post: state.posts[index],
+                                );
+                              });
+                        } else if (state is ErrorState) {
+                          return ErrorWidget(state.message.toString());
+                        }
+                        return Text("Something went wrong, please try again.");
+                      },
+                    ),
                   ),
                 ),
               ],

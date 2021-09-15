@@ -1,11 +1,15 @@
-import 'dart:io';
+// import 'dart:io';
 
+import 'package:facebookfeed/bloC/bloc.dart';
+import 'package:facebookfeed/bloC/states.dart';
+import 'package:facebookfeed/repository/post_repo.dart';
 import 'package:facebookfeed/screens/home_page.dart';
 import 'package:facebookfeed/screens/nav_screen_ios.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import 'feed_screen.dart';
-// import 'package:progress_indicators/progress_indicators.dart';
+import 'package:universal_platform/universal_platform.dart'; // import 'package:progress_indicators/progress_indicators.dart';
 
 class SplashScreen extends StatefulWidget {
   static const String id = 'splash_screen';
@@ -13,21 +17,51 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
+// NavScreenIOS()
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
 
     Timer(Duration(seconds: 2), () {
-      Navigator.pushAndRemoveUntil(context,
-          MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
-      if (Platform.operatingSystem == "android") {
-        Navigator.pushAndRemoveUntil(context,
-            MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
-      } else if (Platform.operatingSystem == "ios") {
+      if (UniversalPlatform.isAndroid) {
         Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => NavScreenIOS()),
+            MaterialPageRoute(
+              builder: (_) => BlocProvider(
+                create: (context) => PostBloc(
+                  InitialState(),
+                  PostRepository(),
+                ),
+                child: HomePage(),
+              ),
+            ),
+            (route) => false);
+      } else if (UniversalPlatform.isIOS) {
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BlocProvider(
+                create: (context) => PostBloc(
+                  InitialState(),
+                  PostRepository(),
+                ),
+                child: NavScreenIOS(),
+              ),
+            ),
+            (route) => false);
+      } else if (UniversalPlatform.isWeb) {
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BlocProvider(
+                create: (context) => PostBloc(
+                  InitialState(),
+                  PostRepository(),
+                ),
+                child: HomePage(),
+              ),
+            ),
             (route) => false);
       }
     });
